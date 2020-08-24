@@ -1,4 +1,4 @@
-package socket
+package sermo
 
 type Request struct {
 	Method  string                 `json:"method"`
