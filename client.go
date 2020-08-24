@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"sync"
 
 	"github.com/google/uuid"
 )
@@ -16,7 +17,8 @@ type Client struct {
 	ID uuid.UUID
 	net.Conn
 
-	Routes []Route
+	Routes   []Route
+	routines *sync.WaitGroup
 }
 type Clients []Client
 
@@ -51,35 +53,48 @@ func (c Client) Listen() {
 			continue
 		}
 
-		c.Printf("%+v", request)
+		c.handleRequest(request)
+	}
+
+	defer c.disconnect()
+}
+
+func (c Client) handleRequest(r *Request) {
+	c.routines.Add(1)
+	go func(wg *sync.WaitGroup) {
+		// Set done on end
+		defer wg.Done()
+
+		// Print request
+		c.Printf("%+v", r)
+
+		// Get routes
 		foundRoute := false
 		for _, route := range c.Routes {
-			if strings.ToLower(request.Method) == strings.ToLower(route.Method) && strings.ToLower(request.URL) == strings.ToLower(route.URL) {
-				route.RouteFunction(*request, Response{
+			if strings.ToLower(r.Method) == strings.ToLower(route.Method) && strings.ToLower(r.URL) == strings.ToLower(route.URL) {
+				route.RouteFunction(*r, Response{
 					Type:      "request",
 					URL:       route.URL,
-					RequestID: request.RequestID,
+					RequestID: r.RequestID,
 					Client:    c,
 				})
 				foundRoute = true
-				break
 			}
 		}
 
+		// Did not find route, so send 404
 		if foundRoute == false {
 			c.Write(Response{
 				Type:      "request",
-				URL:       request.URL,
-				RequestID: request.RequestID,
+				URL:       r.URL,
+				RequestID: r.RequestID,
 				Code:      404,
 				Data: map[string]interface{}{
 					"error": "NotFound",
 				},
 			})
 		}
-	}
-
-	defer c.disconnect()
+	}(c.routines)
 }
 
 func (c Client) Read() (*Request, error) {
