@@ -1,5 +1,5 @@
-# Go Socket
-This package implements a very basic version of a net socket via Golang.
+# Sermo Socket (Go)
+This package implements a very basic version of a net socket via Golang via a basic HTTP object, called Sermo.
 It's possible to start a UNIX/TCP socket via this package, with some built in features.
 
 Everyone that connects to this socket get's a uuid.
