@@ -17,7 +17,9 @@ type Client struct {
 	ID uuid.UUID
 	net.Conn
 
-	Routes   []Route
+	Routes []Route
+
+	reader   *bufio.Reader
 	routines *sync.WaitGroup
 }
 type Clients []Client
@@ -42,6 +44,10 @@ func (c Client) Listen() {
 	}
 
 	c.Printf("Authenticated client")
+
+	// Create Reader and WaitGroup
+	c.reader = bufio.NewReader(c.Conn)
+	c.routines = &sync.WaitGroup{}
 
 	for {
 		request, err := c.Read()
@@ -98,12 +104,11 @@ func (c Client) handleRequest(r *Request) {
 }
 
 func (c Client) Read() (*Request, error) {
-	reader := bufio.NewReader(c.Conn)
 	var bytes []byte
 	var request Request
 	for {
 		// Read until 0x0A (\n)
-		ba, isPrefix, err := reader.ReadLine()
+		ba, isPrefix, err := c.reader.ReadLine()
 		if err != nil {
 			return nil, err
 		}
