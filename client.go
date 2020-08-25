@@ -136,7 +136,7 @@ func (c Client) Write(r Response) (n int, err error) {
 	if err != nil {
 		return 0, nil
 	}
-	bytes = append(bytes, 4)
+	bytes = append(bytes, 0x0A)
 
 	return c.Conn.Write(bytes)
 }
