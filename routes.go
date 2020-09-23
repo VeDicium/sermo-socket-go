@@ -1,11 +1,18 @@
 package sermo
 
+import (
+	"regexp"
+	"sort"
+	"strings"
+)
+
 type Request struct {
 	Method  string                 `json:"method"`
 	URL     string                 `json:"url"`
 	Query   map[string]interface{} `json:"query"`
 	Body    map[string]interface{} `json:"body"`
 	Headers map[string]interface{} `json:"headers"`
+	Params  map[string]interface{} `json:"params"`
 
 	RequestID string `json:"requestId"`
 }
@@ -31,6 +38,7 @@ type Route struct {
 	Method        string
 	Version       string
 	URL           string
+	Params        []string
 	RouteFunction func(req Request, res Response) (int, error)
 }
 type Routes []Route
@@ -63,5 +71,29 @@ func (r *Routes) RegisterRoute(method string, version string, url string, routeF
 		RouteFunction: routeFunction,
 	}
 
+	for idx, param := range strings.Split(route.URL, ":") {
+		if idx > 0 {
+			route.Params = append(route.Params, strings.ReplaceAll(param, "/", ""))
+		}
+	}
+
 	*r = append(*r, route)
+
+	// Sort routes based on number of parameters
+	sort.Slice(*r, func(index, indexNew int) bool {
+		route := *r
+		return len(route[index].Params) > len(route[indexNew].Params)
+	})
+}
+
+func (route Route) urlRegex() *regexp.Regexp {
+	url := strings.ToLower(route.URL)
+
+	// Get parameters
+	for _, param := range route.Params {
+		paramRegex := regexp.MustCompile(":" + param)
+		url = paramRegex.ReplaceAllString(url, "(.*)")
+	}
+
+	return regexp.MustCompile(url)
 }

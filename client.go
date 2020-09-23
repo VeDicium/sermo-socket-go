@@ -89,6 +89,17 @@ func (c Client) handleRequest(request *Request) {
 				},
 			})
 		} else {
+			// Add params
+			if len(route.Params) > 0 {
+				request.Params = map[string]interface{}{}
+				matches := route.urlRegex().FindSubmatch([]byte(request.URL))
+				for idx, param := range route.Params {
+					if len(matches) >= idx {
+						request.Params[param] = string(matches[idx+1])
+					}
+				}
+			}
+
 			route.RouteFunction(*request, Response{
 				Type:      "request",
 				URL:       route.URL,
@@ -149,7 +160,7 @@ func (c Client) matchRoute(request Request) *Route {
 			continue
 		}
 
-		if strings.ToLower(route.URL) != strings.ToLower(request.URL) {
+		if route.urlRegex().MatchString(strings.ToLower(request.URL)) == false {
 			continue
 		}
 
