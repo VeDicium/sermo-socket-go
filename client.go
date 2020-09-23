@@ -65,39 +65,35 @@ func (c Client) Listen() {
 	defer c.disconnect()
 }
 
-func (c Client) handleRequest(r *Request) {
+func (c Client) handleRequest(request *Request) {
 	c.routines.Add(1)
 	go func(wg *sync.WaitGroup) {
 		// Set done on end
 		defer wg.Done()
 
 		// Print request
-		c.Printf("%+v", r)
+		c.Printf("%+v", request)
 
 		// Get routes
-		foundRoute := false
-		for _, route := range c.Routes {
-			if strings.ToLower(r.Method) == strings.ToLower(route.Method) && strings.ToLower(r.URL) == strings.ToLower(route.URL) {
-				route.RouteFunction(*r, Response{
-					Type:      "request",
-					URL:       route.URL,
-					RequestID: r.RequestID,
-					Client:    c,
-				})
-				foundRoute = true
-			}
-		}
+		route := c.matchRoute(*request)
 
-		// Did not find route, so send 404
-		if foundRoute == false {
+		// 404 when route not found
+		if route == nil {
 			c.Write(Response{
 				Type:      "request",
-				URL:       r.URL,
-				RequestID: r.RequestID,
+				URL:       request.URL,
+				RequestID: request.RequestID,
 				Code:      404,
 				Data: map[string]interface{}{
 					"error": "NotFound",
 				},
+			})
+		} else {
+			route.RouteFunction(*request, Response{
+				Type:      "request",
+				URL:       route.URL,
+				RequestID: request.RequestID,
+				Client:    c,
 			})
 		}
 	}(c.routines)
@@ -144,4 +140,21 @@ func (c Client) Write(r Response) (n int, err error) {
 func (c Client) disconnect() {
 	c.Printf("Disconnect")
 	c.Close()
+}
+
+func (c Client) matchRoute(request Request) *Route {
+	for _, route := range c.Routes {
+		// Check if method match
+		if strings.ToLower(route.Method) != strings.ToLower(request.Method) {
+			continue
+		}
+
+		if strings.ToLower(route.URL) != strings.ToLower(request.URL) {
+			continue
+		}
+
+		return &route
+	}
+
+	return nil
 }
