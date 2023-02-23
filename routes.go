@@ -87,13 +87,16 @@ func (r *Routes) RegisterRoute(method string, version string, url string, routeF
 }
 
 func (route Route) urlRegex() *regexp.Regexp {
-	url := strings.ToLower(route.URL)
+	regex := strings.ToLower(route.URL)
 
 	// Get parameters
 	for _, param := range route.Params {
 		paramRegex := regexp.MustCompile(":" + param)
-		url = paramRegex.ReplaceAllString(url, "(.*)")
+		regex = paramRegex.ReplaceAllString(regex, "(.*)")
 	}
 
-	return regexp.MustCompile(url)
+	// Add a start and end
+	regex = ("^" + regex + "$")
+
+	return regexp.MustCompile(regex)
 }
