@@ -85,7 +85,8 @@ func (c Client) handleRequest(request *Request) {
 				RequestID: request.RequestID,
 				Code:      404,
 				Data: map[string]interface{}{
-					"error": "NotFound",
+					"error":   "NotFound",
+					"message": "Cannot " + strings.ToUpper(request.Method) + " " + request.URL,
 				},
 			})
 		} else {

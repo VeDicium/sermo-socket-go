@@ -71,10 +71,10 @@ func (r *Routes) RegisterRoute(method string, version string, url string, routeF
 		RouteFunction: routeFunction,
 	}
 
-	for idx, param := range strings.Split(route.URL, ":") {
-		if idx > 0 {
-			route.Params = append(route.Params, strings.ReplaceAll(param, "/", ""))
-		}
+	// Find all parameters
+	paramGroups := PARAM_REGEX.FindAllStringSubmatch(route.URL, -1)
+	for _, group := range paramGroups {
+		route.Params = append(route.Params, group[1])
 	}
 
 	*r = append(*r, route)
@@ -91,7 +91,7 @@ func (route Route) urlRegex() *regexp.Regexp {
 
 	// Get parameters
 	for _, param := range route.Params {
-		paramRegex := regexp.MustCompile(":" + param)
+		paramRegex := regexp.MustCompile(":" + strings.ToLower(param))
 		regex = paramRegex.ReplaceAllString(regex, "(.*)")
 	}
 
